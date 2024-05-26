@@ -1,0 +1,92 @@
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+#include <list>
+#define MAX 100001
+using namespace std;
+struct Query{
+    int id;
+    int L;
+    int R;
+    Query(){}
+};
+int n,k;
+int nums[MAX];
+Query qs[MAX];
+int ans[MAX];
+list<int> dMap[MAX];
+int freq[MAX]{};
+int chunks[1005]{};
+int query(){
+    static const int sqrtN = sqrt(n)+1;
+    for(int i = sqrtN-1; i>=0; --i){
+        if(chunks[i]>0){
+            const int a = (i+1)*sqrtN-1;
+            const int b = i*sqrtN;
+            for(int j = n-1 < a ? n-1 : a; j>=b ;--j){
+                if(freq[j]>0){
+                    return j;
+                }
+            }
+        }
+    }
+    return 0;
+}
+void update(int p, int u){
+    static const int sqrtN = sqrt(n)+1;
+    freq[p]+=u;
+    chunks[p/sqrtN]+=u;
+}
+void expand(bool L, int i){
+    list<int> &dq = dMap[nums[i]];
+    if(!dq.empty())
+        update(dq.back() - dq.front(),-1);
+    L ? dq.push_front(i) : dq.push_back(i);
+    update(dq.back() - dq.front(),1);
+}
+void shrink(bool L,int i){
+    list<int> &dq = dMap[nums[i]];
+    update(dq.back() - dq.front(),-1);
+    if(!dq.empty()){
+        L ? dq.pop_front() : dq.pop_back();
+        update(dq.back() - dq.front(),1);
+    }
+}
+int main(){
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cin>>n>>k;
+    const int s = sqrt(n);
+    for(int i = 0; i < n; i++)
+        cin>>nums[i];
+    int q; cin>>q;
+    for(int i = 0; i < q; i++){
+        cin>>qs[i].L>>qs[i].R;
+        qs[i].id=i;
+        --qs[i].L;
+        --qs[i].R;
+    }
+    sort(qs,qs+q,[s](const Query&a, const Query&b){
+        const int as = a.L/s;
+        if(as != b.L/s){
+            return a.L < b.L;
+        }else{
+            return as%2 ? a.R > b.R : a.R < b.R;
+        }
+    });
+    int L = 0, R=-1;
+    for(int i = 0; i < q; i++){
+        const int QL = qs[i].L, QR=qs[i].R;
+        while(R<QR)
+            expand(0,++R);
+        while(L>QL)
+            expand(1,--L);
+        while(R>QR)
+            shrink(0,R--);
+        while(L<QL)
+            shrink(1,L++);
+        ans[qs[i].id]=query();
+    }
+    for(int i = 0; i < q; i++)
+        cout<<ans[i]<<"\n";
+}
