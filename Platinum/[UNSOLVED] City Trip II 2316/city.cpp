@@ -1,91 +1,93 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#define INF 1000000000
 using namespace std;
 class FlowNetwork{
     private:
     #define SS 0
     #define ST 1
-    #define IN(i) (i)
-    #define OUT(i) (i+V)
-    #define INF 1000000000
+    #define OUT(i) ((i)+n)
     struct Edge{
         int u;
         int v;
         int cap;
         int flow;
         Edge(){}
-        Edge(int u, int v, int c, int f):u(v),v(v),cap(c),flow(f){}
+        Edge(int u, int v, int c, int f):u(u),v(v),cap(c),flow(f){}
     };
-    int V, GV;
+    int n;
+    int V;
     vector<Edge> edges;
     vector<vector<int>> graph;
-    vector<int> level;
-    vector<int> savedPointDFS;
+    vector<int> levels;
+    vector<int> saveDFS;
     bool BFS(){
-        queue<int> q({OUT(SS)});
-        level.assign(V,-1);
-        level[OUT(SS)]=0;
+        queue<int> q({SS});
+        levels.assign(V,-1);
+        levels[SS]=0;
         while(!q.empty()){
             int cur = q.front(); q.pop();
             if(cur==ST) break;
-            for(int i = 0; i < graph[cur].size(); i++){
+            for(int i = 0; i < graph[cur].size(); ++i){
                 Edge &edge = edges[graph[cur][i]];
-                if(edge.cap-edge.flow > 0 && level[edge.v]==-1){
-                    level[edge.v]=level[cur]+1;
+                if(edge.cap - edge.flow > 0 && levels[edge.v]==-1){
+                    levels[edge.v]=levels[cur]+1;
                     q.push(edge.v);
                 }
             }
         }
-        return level[ST]!=-1;
+        return levels[ST]!=-1;
     }
     int DFS(int cur, int f){
         if(cur==ST || f==0) return f;
-        for(int &i = savedPointDFS[cur]; i < graph[cur].size(); i++){
+        for(int &i = saveDFS[cur]; i < graph[cur].size(); ++i){
             Edge &edge = edges[graph[cur][i]];
-            if(level[edge.v]!=level[cur]+1) continue;
-            int pushedFlow = DFS(edge.v,min(f,edge.cap-edge.flow));
-            if(pushedFlow){
-                edge.flow += pushedFlow;
+            if(levels[edge.v]!=levels[cur]+1) continue;
+            if(int pushedFlow = DFS(edge.v,min(f,edge.cap-edge.flow))){
+                edge.flow+=pushedFlow;
                 Edge &rEdge = edges[graph[cur][i]^1];
-                rEdge.flow -= pushedFlow;
+                rEdge.flow-=pushedFlow;
                 return pushedFlow;
             }
         }
         return 0;
     }
     public:
-    FlowNetwork(int v):V(v),GV(2*V),graph(GV),level(GV){
-        for(int i = 2; i < V; ++i){
-            edges.emplace_back(IN(i),OUT(i),1,0);
-            graph[IN(i)].push_back(edges.size()-1);
-        }
-    }
-    void addEdge(int u, int v, int c){
-        // in-node
-        edges.emplace_back(OUT(u),IN(v),c,0);
-        graph[OUT(u)].push_back(edges.size()-1);
-        edges.emplace_back(OUT(v),IN(u),c,0);
-        graph[OUT(v)].push_back(edges.size()-1);
+    FlowNetwork(int n):n(n),V(2*n),graph(V){
+        for(int i = 0; i < n; ++i){
+            edges.emplace_back(i,OUT(i),i==SS || i==ST ? INF : 1,0);
+            graph[i].push_back(edges.size()-1);
+            edges.emplace_back(OUT(i),i,0,0);
+            graph[OUT(i)].push_back(edges.size()-1);
+        }   
     }
     int maxFlow(){
         int mf = 0;
         while(BFS()){
-            savedPointDFS.assign(GV,0);
-            while(int f = DFS(OUT(SS),INF)){
+            saveDFS.assign(V,0);
+            while(int f = DFS(SS,INF)){
                 mf+=f;
             }
         }
         return mf;
     }
+    void addEdge(int u, int v, int c){
+        static bool forward = 1;
+        edges.emplace_back(OUT(u),v,c,0);
+        graph[OUT(u)].push_back(edges.size()-1);
+        edges.emplace_back(v,OUT(u),0,0);
+        graph[v].push_back(edges.size()-1);
+        forward = !forward;
+        if(forward){return;}
+        addEdge(v,u,c);
+    }
 };
 int main(){
-    ios::sync_with_stdio(0);
-    cin.tie(0);
-    int n,p; cin>>n>>p;
+    int n, p; cin>>n>>p;
     FlowNetwork fn(n);
     for(int i = 0; i < p; ++i){
-        int u,v; cin>>u>>v; --u, --v;
+        int u, v; cin>>u>>v; --u, --v;
         fn.addEdge(u,v,INF);
     }
     cout<<fn.maxFlow()<<"\n";
