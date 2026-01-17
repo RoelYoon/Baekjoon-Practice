@@ -38,7 +38,7 @@ int main(){
     while(!q.empty()){
         int head = q.front(); q.pop();
         inQ[head]=0;
-        if(loops[head]++==C) break;
+        if(loops[head]++==C+1) break;
         for(int i = 0; i < graph[head].size(); ++i){
             Edge &e = edges[graph[head][i]];
             if(d[e.u]+e.w<d[e.v]){
@@ -52,14 +52,8 @@ int main(){
         }
     }
     bool negativeCycle = 0;
-    for(int u = 0; u < C; ++u){
-        for(int i = 0; i < graph[u].size(); ++i){
-            Edge &e = edges[graph[u][i]];
-            if(d[e.u]+e.w < d[e.v]){
-                negativeCycle = 1;
-            }
-        }
-    }
+    for(int i = 0; i < C; ++i)
+        negativeCycle|=(loops[i]>C-1);
     if(negativeCycle){
         cout<<"-1\n";
         return 0;
